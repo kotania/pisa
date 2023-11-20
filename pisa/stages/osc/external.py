@@ -95,6 +95,7 @@ class external(Stage):
         for container in self.data:
             self.layers.calcLayers(container['true_coszen'])
             container['densities'] = self.layers.density.reshape((container.size, self.layers.max_layers))
+            container['densities_neutron_weighted'] = self.layers.density_neutron_weighted.reshape((container.size, self.layers.max_layers))
             container['distances'] = self.layers.distance.reshape((container.size, self.layers.max_layers))
 
         # don't forget to un-link everything again
@@ -117,6 +118,7 @@ class external(Stage):
 
     def compute_function(self):
 
+
         assert self.is_map
 
         if self.is_map:
@@ -136,22 +138,31 @@ class external(Stage):
             for container in self.data:
                 self.layers.calcLayers(container['true_coszen'])
                 container['densities'] = self.layers.density.reshape((container.size, self.layers.max_layers))
+                container['densities_neutron_weighted'] = self.layers.density_neutron_weighted.reshape((container.size, self.layers.max_layers))
                 container['distances'] = self.layers.distance.reshape((container.size, self.layers.max_layers))
 
         for container in self.data:
             energy_idx = self.data.representation.names.index('true_energy')
 
-            energies = self.data.representation.dims[energy_idx].midpoints.m
+            energies = self.data.representation.dims[energy_idx].weighted_centers.m
             distances = container['distances'].reshape(*self.data.representation.shape, -1)
             densities = container['densities'].reshape(*self.data.representation.shape, -1)
+            densities_neutron_weighted = container['densities_neutron_weighted'].reshape(*self.data.representation.shape, -1)
             if energy_idx == 0:
                 distances = distances[0, :]
                 densities = densities[0, :]
+                densities_neutron_weighted = densities_neutron_weighted[0, :]
             else:
                 distances = distances[:, 0]
                 densities = densities[:, 0]
+                densities_neutron_weighted = densities_neutron_weighted[:, 0]
 
-            p = self.osc_prob(energies, distances, self.external_params, bool(container['nubar']), densities)
+            if container['nubar'] == 1:
+                is_anti = False
+            elif container['nubar'] == -1:
+                is_anti = True
+
+            p = self.osc_prob(energies, distances, self.external_params, is_anti, densities, densities_neutron_weighted)
 
             if energy_idx == 0:
                 container['probability'] = p[:, :, :3, :3].reshape(-1, 3, 3)
