@@ -162,7 +162,8 @@ class external(Stage):
             elif container['nubar'] == -1:
                 is_anti = True
 
-            p = self.osc_prob(energies, distances, self.external_params, is_anti, densities, densities_neutron_weighted)
+            p = self.osc_prob(energies, distances, self.external_params, is_anti, densities, densities_neutron_weighted,
+                False, False)
 
             if energy_idx == 0:
                 container['probability'] = p[:, :, :3, :3].reshape(-1, 3, 3)
