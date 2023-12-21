@@ -70,6 +70,7 @@ class external(Stage):
         self.YeO = None
         self.YeM = None
 
+
     def setup_function(self):
 
         # setup the layers
@@ -82,6 +83,7 @@ class external(Stage):
         detector_depth = self.params.detector_depth.value.m_as('km')
         self.layers = Layers(earth_model, detector_depth, prop_height)
         self.layers.setElecFrac(self.YeI, self.YeO, self.YeM)
+     
 
         # --- calculate the layers ---
         if self.is_map:
@@ -162,8 +164,7 @@ class external(Stage):
             elif container['nubar'] == -1:
                 is_anti = True
 
-            p = self.osc_prob(energies, distances, self.external_params, is_anti, densities, densities_neutron_weighted,
-                False, False)
+            p = self.osc_prob(energies, distances, self.external_params, is_anti, densities, densities_neutron_weighted)
 
             if energy_idx == 0:
                 container['probability'] = p[:, :, :3, :3].reshape(-1, 3, 3)
