@@ -1771,9 +1771,6 @@ class Map(object):
         folded_hists[0] = np.transpose(np.array(folded_hists[0]), axes=(1, 2, 0))
         folded_hists[1] = np.transpose(np.array(folded_hists[1]), axes=(1, 2, 0))
 
-        print(np.sum(stats.folded_ratio_chi2(actual_values=folded_hists[1],
-                                 expected_values=folded_hists[0])))
-
         if binned:
 
             return (stats.folded_ratio_chi2(actual_values=folded_hists[1],
