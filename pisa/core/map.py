@@ -1712,6 +1712,76 @@ class Map(object):
         return np.sum(stats.chi2(actual_values=self.hist,
                                  expected_values=expected_values))
 
+    def folded_ratio_chi2(self, expected_values, binned=False, pseudodata=False):
+        """Calculate the total chi-squared value between this folded map and the folded map
+        described by `expected_values`; self is taken to be the "actual values"
+        (or (pseudo)data), and `expected_values` are the expectation values for
+        each bin.
+
+        Parameters
+        ----------
+        expected_values : numpy.ndarray or Map of same dimension as this
+
+        binned : bool
+
+        Returns
+        -------
+        total_chi2 : float or binned_chi2 if binned=True
+
+        """
+        expected_values = reduceToHist(expected_values)
+        actual_values = self.hist
+
+
+        num_pid_bins = np.shape(expected_values)[2]
+        num_coszen_bins = np.shape(expected_values)[1]
+        half_num_coszen_bins = int(num_coszen_bins / 2)
+
+        folded_hists = [[[] for i in range(num_pid_bins)], [[] for i in range(num_pid_bins)]]
+
+        # Loop over histograms
+        for ih, hist in enumerate([expected_values, actual_values]):
+
+            # Loop over PID bins for each hist
+            for ip in range(num_pid_bins):
+
+                # Within each PID bin, fold the histogram over the horizon
+                # NB: This assumes that the histogram has the same number of bins above and below the horizon
+                upper_hist_folded = hist[:, :, ip][:, half_num_coszen_bins:][:, ::-1]
+                lower_hist = hist[:, :, ip][:, :half_num_coszen_bins]
+
+                # Divide counts above the horizon by the counts below the horizon
+                upper_lower_ratio = upper_hist_folded / lower_hist
+                # Calculate statistical error of the ratio assuming linear uncertainty propagation
+                # sigma_ratio_AB = ratio_AB * sqrt((sigma_A / A)^2 + (sigma_B / B)^2) for the ratio A/B
+                ratio_stat_err = unp.nominal_values(upper_lower_ratio) * np.sqrt((1 / unp.nominal_values(lower_hist)) + ( 1 / unp.nominal_values(upper_hist_folded)))
+
+                if (ih == 0) | pseudodata:
+                    # For MC, need to extract the MC statistical uncertainty and add it to the manually calculated Poisson error on the number of counts (in quadratures).
+                    # If both hists are MC-based, apply this to both hists.
+                    ratio_mc_err = unp.std_devs(upper_lower_ratio)
+                    ratio_full_err = np.sqrt(ratio_mc_err**2 + ratio_stat_err**2)
+                    folded_hists[ih][ip] = unp.uarray(unp.nominal_values(upper_lower_ratio), ratio_full_err)
+                    
+                elif (ih == 1) & (not pseudodata):
+                    # For data, the uncertainty is already the full statistical uncertainty
+                    folded_hists[ih][ip] = upper_lower_ratio
+
+
+        folded_hists[0] = np.transpose(np.array(folded_hists[0]), axes=(1, 2, 0))
+        folded_hists[1] = np.transpose(np.array(folded_hists[1]), axes=(1, 2, 0))
+
+        print(np.sum(stats.folded_ratio_chi2(actual_values=folded_hists[1],
+                                 expected_values=folded_hists[0])))
+
+        if binned:
+
+            return (stats.folded_ratio_chi2(actual_values=folded_hists[1],
+                              expected_values=folded_hists[0]))
+
+        return np.sum(stats.folded_ratio_chi2(actual_values=folded_hists[1],
+                                 expected_values=folded_hists[0]))
+
     def signed_sqrt_mod_chi2(self, expected_values):
         """Calculate the binwise (signed) square-root of the modified chi2 value
         between this map and the map described by `expected_values`; self is
