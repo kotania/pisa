@@ -1781,7 +1781,7 @@ class Map(object):
 
             return binned_ratio_chi2
 
-        return np.sum(binned_ratio_chi2)
+        return np.nansum(binned_ratio_chi2)
 
     def signed_sqrt_mod_chi2(self, expected_values):
         """Calculate the binwise (signed) square-root of the modified chi2 value
