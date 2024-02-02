@@ -1771,13 +1771,17 @@ class Map(object):
         folded_hists[0] = np.transpose(np.array(folded_hists[0]), axes=(1, 2, 0))
         folded_hists[1] = np.transpose(np.array(folded_hists[1]), axes=(1, 2, 0))
 
+        binned_ratio_chi2 = stats.folded_ratio_chi2(actual_values=folded_hists[1],
+                              expected_values=folded_hists[0])
+
+        binned_ratio_chi2 = np.where(binned_ratio_chi2 < 1e20, binned_ratio_chi2, np.nan)
+        binned_ratio_chi2 = np.ma.concatenate([np.zeros_like(binned_ratio_chi2), binned_ratio_chi2[:, ::-1, :]], axis=1)
+
         if binned:
 
-            return (stats.folded_ratio_chi2(actual_values=folded_hists[1],
-                              expected_values=folded_hists[0]))
+            return binned_ratio_chi2
 
-        return np.sum(stats.folded_ratio_chi2(actual_values=folded_hists[1],
-                                 expected_values=folded_hists[0]))
+        return np.sum(binned_ratio_chi2)
 
     def signed_sqrt_mod_chi2(self, expected_values):
         """Calculate the binwise (signed) square-root of the modified chi2 value
